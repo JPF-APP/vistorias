@@ -1,3 +1,4 @@
+
 /**
  * Geração do PDF da ficha de vistoria, reproduzindo as secções e campos do
  * formulário original ("FORMULÁRIO DE SEGURANÇA CONTRA INCÊNDIOS E ACIDENTES
@@ -11,9 +12,9 @@
  * <script> do jsPDF no index.html:
  *   <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.3/dist/jspdf.plugin.autotable.js"></script>
  */
-
+ 
 const PDF_MARGIN = 40;
-
+ 
 // Paleta "Corporativo Bombeiros"
 const PDF_RED = [138, 31, 31];        // faixas de cabeçalho/rodapé, títulos de secção
 const PDF_RED_LIGHT = [246, 239, 228]; // zebra das tabelas
@@ -23,21 +24,21 @@ const PDF_MUTED = [107, 93, 82];
 const PDF_OK = [58, 122, 58];   // estado "Sim"
 const PDF_KO = [165, 42, 42];   // estado "Não"
 const PDF_NA = [138, 128, 112]; // estado "N.A."
-
+ 
 const HEADER_RESERVE = 108; // espaço reservado no topo de cada página, para a faixa de cabeçalho
 const FOOTER_RESERVE = 40;  // espaço reservado no fundo de cada página, para a faixa de rodapé
 const HEADER_H_CAPA = 92;   // altura da faixa de cabeçalho completa (página 1)
 const HEADER_H_CONT = 30;   // altura da faixa de cabeçalho reduzida (páginas seguintes)
 const FOOTER_H = 24;        // altura da faixa de rodapé
-
+ 
 function pdfEstadoLabel(estado) {
   return { sim: "Sim", nao: "Não", na: "N.A." }[estado] || "—";
 }
-
+ 
 function pdfEstadoCor(estado) {
   return { sim: PDF_OK, nao: PDF_KO, na: PDF_NA }[estado] || PDF_MUTED;
 }
-
+ 
 async function imageUrlToDataUrl(url) {
   try {
     const res = await fetch(url, { mode: "cors" });
@@ -53,19 +54,19 @@ async function imageUrlToDataUrl(url) {
     return null;
   }
 }
-
+ 
 let _logoDataUrlCache; // evita voltar a descarregar o logo em cada PDF gerado na mesma sessão
 async function getLogoDataUrl() {
   if (_logoDataUrlCache !== undefined) return _logoDataUrlCache;
   _logoDataUrlCache = await imageUrlToDataUrl("assets/logo.png");
   return _logoDataUrlCache;
 }
-
+ 
 function novoDoc() {
   const { jsPDF } = window.jspdf;
   return new jsPDF({ unit: "pt", format: "a4" });
 }
-
+ 
 async function gerarPdfVistoria(empresa, meta, ficha) {
   setLoading(true);
   try {
@@ -73,14 +74,14 @@ async function gerarPdfVistoria(empresa, meta, ficha) {
     const pageW = doc.internal.pageSize.getWidth();
     const pageH = doc.internal.pageSize.getHeight();
     let y = HEADER_RESERVE;
-
+ 
     function checkPageBreak(alturaNecessaria) {
       if (y + alturaNecessaria > pageH - FOOTER_RESERVE) {
         doc.addPage();
         y = HEADER_RESERVE;
       }
     }
-
+ 
     // --- Cabeçalho/rodapé -----------------------------------------------
     // Desenhados no fim, numa passagem sobre todas as páginas já criadas
     // (incluindo as que a tabela de checklist tiver criado sozinha), porque
@@ -93,7 +94,18 @@ async function gerarPdfVistoria(empresa, meta, ficha) {
         const textX = logoDataUrl ? PDF_MARGIN + 60 : pageW / 2;
         const align = logoDataUrl ? "left" : "center";
         if (logoDataUrl) {
-          try { doc.addImage(logoDataUrl, "PNG", PDF_MARGIN, 22, 48, 48); } catch (e) { /* ignora falha de imagem */ }
+          // o logo.png é um crachá circular com fundo em chamas até aos cantos do
+          // quadrado — recorta-se em círculo para não aparecer esse quadrado sobre
+          // a faixa vermelha, só o crachá redondo.
+          const logoX = PDF_MARGIN, logoY = 22, logoSize = 48;
+          try {
+            doc.saveGraphicsState();
+            doc.circle(logoX + logoSize / 2, logoY + logoSize / 2, logoSize / 2);
+            doc.clip();
+            doc.discardPath();
+            doc.addImage(logoDataUrl, "PNG", logoX, logoY, logoSize, logoSize);
+            doc.restoreGraphicsState();
+          } catch (e) { /* ignora falha de imagem */ }
         }
         doc.setTextColor(255, 255, 255);
         doc.setFont(undefined, "bold");
@@ -118,7 +130,7 @@ async function gerarPdfVistoria(empresa, meta, ficha) {
       }
       doc.setTextColor(...PDF_TEXT);
     }
-
+ 
     function desenharRodape(pagina, total) {
       doc.setFillColor(...PDF_RED);
       doc.rect(0, pageH - FOOTER_H, pageW, FOOTER_H, "F");
@@ -129,7 +141,7 @@ async function gerarPdfVistoria(empresa, meta, ficha) {
       doc.text(`Página ${pagina} de ${total}`, pageW - PDF_MARGIN, pageH - FOOTER_H / 2 + 3, { align: "right" });
       doc.setTextColor(...PDF_TEXT);
     }
-
+ 
     // --- Título de secção ("● Nome da secção", a vermelho) ---------------
     function titulo(texto) {
       checkPageBreak(22);
@@ -142,13 +154,13 @@ async function gerarPdfVistoria(empresa, meta, ficha) {
       doc.setTextColor(...PDF_TEXT);
       y += 16;
     }
-
+ 
     // --- Pares "LABEL pequeno a vermelho" / "valor" em duas colunas -------
     function renderizarCampos(pares) {
       const colGap = 20;
       const colW = (pageW - PDF_MARGIN * 2 - colGap) / 2;
       const colX = [PDF_MARGIN, PDF_MARGIN + colW + colGap];
-
+ 
       for (let i = 0; i < pares.length; i += 2) {
         const linha = [pares[i], pares[i + 1]].filter(Boolean);
         doc.setFont(undefined, "normal");
@@ -172,7 +184,7 @@ async function gerarPdfVistoria(empresa, meta, ficha) {
         y += altura + 6;
       }
     }
-
+ 
     function camposEmDuasColunas(campos, valores) {
       const pares = campos.map(c => {
         const raw = valores && valores[c.key];
@@ -186,7 +198,7 @@ async function gerarPdfVistoria(empresa, meta, ficha) {
       renderizarCampos(pares);
       y += 4;
     }
-
+ 
     // --- Cabeçalho da empresa (nome em destaque + linha vermelha) --------
     function cabecalhoEmpresa() {
       checkPageBreak(56);
@@ -212,7 +224,7 @@ async function gerarPdfVistoria(empresa, meta, ficha) {
       doc.line(PDF_MARGIN, y, pageW - PDF_MARGIN, y);
       y += 16;
     }
-
+ 
     // --- Fotografia emoldurada a vermelho ---------------------------------
     function desenharFotoEmoldurada(dataUrl, x, y0, w, h) {
       const pad = 3;
@@ -221,7 +233,7 @@ async function gerarPdfVistoria(empresa, meta, ficha) {
       doc.rect(x - pad, y0 - pad, w + pad * 2, h + pad * 2);
       try { doc.addImage(dataUrl, "JPEG", x, y0, w, h); } catch (e) { /* ignora falha de imagem */ }
     }
-
+ 
     // --- Checklist em tabela, com o estado colorido -----------------------
     function itemObservacoes(v) {
       const partes = [];
@@ -230,7 +242,7 @@ async function gerarPdfVistoria(empresa, meta, ficha) {
       if (v.fotos && v.fotos.length) partes.push(`${v.fotos.length} foto(s) anexada(s)`);
       return partes.join(" — ") || "—";
     }
-
+ 
     function tabelaChecklist(itens, valoresPorKey) {
       if (!itens || !itens.length) return;
       const estados = [];
@@ -244,7 +256,7 @@ async function gerarPdfVistoria(empresa, meta, ficha) {
           itemObservacoes(v),
         ];
       });
-
+ 
       const larguraUtil = pageW - PDF_MARGIN * 2;
       doc.autoTable({
         startY: y,
@@ -276,17 +288,17 @@ async function gerarPdfVistoria(empresa, meta, ficha) {
           }
         },
       });
-
+ 
       y = doc.lastAutoTable.finalY + 16;
     }
-
+ 
     // --- Armazenamento de riscos especiais, emoldurado --------------------
     function renderizarArmazenamento(label, campos, valores) {
       const padding = 10;
       const innerColGap = 16;
       const innerColW = (pageW - PDF_MARGIN * 2 - padding * 2 - innerColGap) / 2;
       const innerColX = [PDF_MARGIN + padding, PDF_MARGIN + padding + innerColW + innerColGap];
-
+ 
       doc.setFont(undefined, "normal");
       doc.setFontSize(9);
       const preparado = campos.map(c => {
@@ -299,25 +311,25 @@ async function gerarPdfVistoria(empresa, meta, ficha) {
         const valorTxt = (valor === null || valor === undefined || valor === "") ? "—" : String(valor);
         return { label: c.label, linhas: doc.splitTextToSize(valorTxt, innerColW) };
       });
-
+ 
       let alturaCampos = 0;
       for (let i = 0; i < preparado.length; i += 2) {
         const par = [preparado[i], preparado[i + 1]].filter(Boolean);
         alturaCampos += 11 + 12 * Math.max(...par.map(p => p.linhas.length)) + 6;
       }
       const boxH = 26 + alturaCampos;
-
+ 
       checkPageBreak(boxH + 10);
       doc.setDrawColor(...PDF_BORDER);
       doc.setLineWidth(0.8);
       doc.rect(PDF_MARGIN, y, pageW - PDF_MARGIN * 2, boxH);
-
+ 
       doc.setFont(undefined, "bold");
       doc.setFontSize(9);
       doc.setTextColor(...PDF_RED);
       doc.text(label, PDF_MARGIN + padding, y + 17);
       doc.setTextColor(...PDF_TEXT);
-
+ 
       let cy = y + 32;
       for (let i = 0; i < preparado.length; i += 2) {
         const par = [preparado[i], preparado[i + 1]].filter(Boolean);
@@ -334,10 +346,10 @@ async function gerarPdfVistoria(empresa, meta, ficha) {
         });
         cy += altura + 6;
       }
-
+ 
       y += boxH + 12;
     }
-
+ 
     // --- Assinaturas -------------------------------------------------------
     // Adicionado com o novo layout (a ficha original em papel também tem
     // espaço para assinar) — fácil de remover se não fizer sentido na app.
@@ -351,12 +363,12 @@ async function gerarPdfVistoria(empresa, meta, ficha) {
       doc.text(label, x, y + 36);
       doc.setTextColor(...PDF_TEXT);
     }
-
+ 
     // ======================================================================
     // Conteúdo
     // ======================================================================
     const logoDataUrl = await getLogoDataUrl();
-
+ 
     // Fotografia geral da empresa, emoldurada, no canto superior direito
     let fotoEmpresaBottom = 0;
     if (empresa.fotoUrl) {
@@ -368,7 +380,7 @@ async function gerarPdfVistoria(empresa, meta, ficha) {
         fotoEmpresaBottom = fy + 90 + 10;
       }
     }
-
+ 
     cabecalhoEmpresa();
     renderizarCampos([
       { label: "Tipo de Laboração", valor: empresa.tipoLaboracao },
@@ -376,13 +388,13 @@ async function gerarPdfVistoria(empresa, meta, ficha) {
     ]);
     if (fotoEmpresaBottom) y = Math.max(y, fotoEmpresaBottom);
     y += 6;
-
+ 
     titulo(FICHA_SCHEMA.identificacao.titulo);
     camposEmDuasColunas(FICHA_SCHEMA.identificacao.campos, empresa);
-
+ 
     titulo(FICHA_SCHEMA.seguranca.titulo);
     camposEmDuasColunas(FICHA_SCHEMA.seguranca.campos, ficha.seguranca);
-
+ 
     titulo(FICHA_SCHEMA.reservaAgua.titulo);
     FICHA_SCHEMA.reservaAgua.grupos.forEach(g => {
       checkPageBreak(14);
@@ -395,16 +407,16 @@ async function gerarPdfVistoria(empresa, meta, ficha) {
       camposEmDuasColunas(g.campos, (ficha.reservaAgua || {})[g.key]);
     });
     y += 2;
-
+ 
     titulo(FICHA_SCHEMA.medidas.titulo);
     tabelaChecklist(FICHA_SCHEMA.medidas.itens, ficha.medidas);
-
+ 
     titulo(FICHA_SCHEMA.riscosEspeciais.titulo);
     FICHA_SCHEMA.riscosEspeciais.armazenamentos.forEach(a => {
       renderizarArmazenamento(a.label, CAMPOS_ARMAZENAMENTO, (ficha.riscosEspeciais || {})[a.key]);
     });
     tabelaChecklist(FICHA_SCHEMA.riscosEspeciais.itens, ficha.riscosEspeciais);
-
+ 
     titulo("Nota");
     doc.setFont(undefined, "normal");
     doc.setFontSize(9.5);
@@ -413,13 +425,13 @@ async function gerarPdfVistoria(empresa, meta, ficha) {
     checkPageBreak(14 * notaLinhas.length);
     doc.text(notaLinhas, PDF_MARGIN, y);
     y += 14 * notaLinhas.length + 20;
-
+ 
     checkPageBreak(50);
     const larguraAssinatura = (pageW - PDF_MARGIN * 2 - 30) / 2;
     linhaAssinatura("Assinatura do vistoriador", PDF_MARGIN, larguraAssinatura);
     linhaAssinatura("Assinatura do responsável", PDF_MARGIN + larguraAssinatura + 30, larguraAssinatura);
     y += 46;
-
+ 
     // Anexo fotográfico (fotos por item)
     const todasFotos = [];
     Object.entries(ficha.medidas || {}).forEach(([key, v]) => {
@@ -430,7 +442,7 @@ async function gerarPdfVistoria(empresa, meta, ficha) {
       const item = FICHA_SCHEMA.riscosEspeciais.itens.find(i => i.key === key);
       if (item) (v.fotos || []).forEach(f => todasFotos.push({ label: item.label, url: f.url }));
     });
-
+ 
     if (todasFotos.length) {
       doc.addPage();
       y = HEADER_RESERVE;
@@ -452,7 +464,7 @@ async function gerarPdfVistoria(empresa, meta, ficha) {
         if (x + imgSize > pageW - PDF_MARGIN) { x = PDF_MARGIN; y += imgSize + 24; }
       }
     }
-
+ 
     // --- Passagem final: faixa de cabeçalho + rodapé em todas as páginas --
     const totalPaginas = doc.internal.getNumberOfPages();
     for (let p = 1; p <= totalPaginas; p++) {
@@ -460,7 +472,7 @@ async function gerarPdfVistoria(empresa, meta, ficha) {
       desenharFaixaTopo(logoDataUrl, p === 1);
       desenharRodape(p, totalPaginas);
     }
-
+ 
     const nomeFicheiro = `Vistoria_${(empresa.nome || "empresa").replace(/[^a-z0-9]+/gi, "_")}_${new Date().toISOString().slice(0, 10)}.pdf`;
     doc.save(nomeFicheiro);
   } catch (e) {
