@@ -1,0 +1,57 @@
+rules_version = '2';
+
+// Regras de segurança do Firestore para a app de Vistorias.
+// Modelo de papéis (coleção /users/{uid}):
+//   { role: 'admin' | 'vistoriador' | 'pendente', nome: '...' }
+//
+// - 'pendente': conta criada mas ainda não aprovada por um admin. Sem acesso a dados.
+// - 'vistoriador': pode ler/criar/editar vistorias e empresas, mas não gerir utilizadores.
+// - 'admin': acesso total, incluindo gestão de utilizadores (aprovar/mudar papel).
+
+function isSignedIn() {
+  return request.auth != null;
+}
+
+function userDoc() {
+  return get(/databases/$(database)/documents/users/$(request.auth.uid));
+}
+
+function role() {
+  return isSignedIn() && userDoc().data != null ? userDoc().data.role : 'anonimo';
+}
+
+function isAdmin() {
+  return isSignedIn() && role() == 'admin';
+}
+
+function isVistoriador() {
+  return isSignedIn() && (role() == 'vistoriador' || role() == 'admin');
+}
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Cada utilizador pode ler o seu próprio documento (para saber o seu papel).
+    // Só um admin pode criar/editar/apagar documentos de utilizador (aprovar contas, mudar papel).
+    // Exceção: um utilizador autenticado sem documento ainda pode criar o seu próprio
+    // documento uma única vez, com role='pendente', para pedir acesso.
+    match /users/{uid} {
+      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow create: if isSignedIn() && request.auth.uid == uid
+                    && request.resource.data.role == 'pendente';
+      allow update, delete: if isAdmin();
+    }
+
+    match /empresas/{empresaId} {
+      allow read: if isVistoriador();
+      allow create, update: if isVistoriador();
+      allow delete: if isAdmin();
+    }
+
+    match /vistorias/{vistoriaId} {
+      allow read: if isVistoriador();
+      allow create, update: if isVistoriador();
+      allow delete: if isAdmin();
+    }
+  }
+}

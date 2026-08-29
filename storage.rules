@@ -1,0 +1,23 @@
+rules_version = '2';
+
+// Regras do Firebase Storage para fotos (foto geral da empresa + fotos por item de checklist).
+// Qualquer utilizador autenticado com conta aprovada (documento em /users) pode ler/escrever.
+// A validação de papel fica a cargo do Firestore; aqui garantimos apenas autenticação
+// e limites básicos de tamanho/tipo de ficheiro.
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /empresas/{empresaId}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+                   && request.resource.size < 15 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+    match /vistorias/{vistoriaId}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+                   && request.resource.size < 15 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+  }
+}

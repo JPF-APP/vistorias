@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+<title>Vistorias | Bombeiros</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<header class="topbar" id="topbar" hidden>
+  <div class="topbar-brand">
+    <span class="brand-icon">🚒</span>
+    <span class="brand-text">Vistorias</span>
+  </div>
+  <nav class="topnav" id="topnav">
+    <button data-route="#/dashboard" class="nav-btn">Vistorias</button>
+    <button data-route="#/empresas" class="nav-btn">Empresas</button>
+    <button data-route="#/utilizadores" class="nav-btn nav-admin-only">Utilizadores</button>
+  </nav>
+  <div class="topbar-user">
+    <span id="user-name"></span>
+    <button id="btn-logout" class="btn-link">Sair</button>
+  </div>
+</header>
+
+<main id="app">
+
+  <!-- LOGIN -->
+  <section id="view-login" class="view">
+    <div class="auth-card">
+      <div class="auth-brand">
+        <span class="brand-icon-lg">🚒</span>
+        <h1>Vistorias</h1>
+        <p class="muted">Segurança Contra Incêndios em Edificações</p>
+      </div>
+      <form id="form-login">
+        <label>Email
+          <input type="email" id="login-email" required autocomplete="username" />
+        </label>
+        <label>Palavra-passe
+          <input type="password" id="login-password" required autocomplete="current-password" />
+        </label>
+        <div class="form-error" id="login-error"></div>
+        <button type="submit" class="btn btn-primary btn-block">Entrar</button>
+      </form>
+      <button class="btn-link" id="btn-show-signup">Ainda não tenho conta</button>
+    </div>
+  </section>
+
+  <!-- SIGNUP -->
+  <section id="view-signup" class="view">
+    <div class="auth-card">
+      <div class="auth-brand">
+        <span class="brand-icon-lg">🚒</span>
+        <h1>Criar Conta</h1>
+        <p class="muted">O acesso fica pendente de aprovação por um administrador</p>
+      </div>
+      <form id="form-signup">
+        <label>Nome
+          <input type="text" id="signup-nome" required />
+        </label>
+        <label>Email
+          <input type="email" id="signup-email" required autocomplete="username" />
+        </label>
+        <label>Palavra-passe
+          <input type="password" id="signup-password" required minlength="6" autocomplete="new-password" />
+        </label>
+        <div class="form-error" id="signup-error"></div>
+        <button type="submit" class="btn btn-primary btn-block">Pedir Acesso</button>
+      </form>
+      <button class="btn-link" id="btn-show-login">Já tenho conta</button>
+    </div>
+  </section>
+
+  <!-- PENDENTE -->
+  <section id="view-pendente" class="view">
+    <div class="auth-card">
+      <div class="auth-brand">
+        <span class="brand-icon-lg">⏳</span>
+        <h1>Conta Pendente</h1>
+        <p class="muted">A tua conta ainda não foi aprovada por um administrador. Contacta a administração do Corpo de Bombeiros.</p>
+      </div>
+      <button class="btn btn-secondary btn-block" id="btn-pendente-logout">Sair</button>
+    </div>
+  </section>
+
+  <!-- DASHBOARD / LISTA DE VISTORIAS -->
+  <section id="view-dashboard" class="view">
+    <div class="view-header">
+      <h2>Vistorias</h2>
+      <button class="btn btn-primary" id="btn-nova-vistoria">+ Nova Vistoria</button>
+    </div>
+    <div class="filters">
+      <select id="filtro-estado">
+        <option value="">Todos os estados</option>
+        <option value="pendente">Pendente</option>
+        <option value="agendada">Agendada</option>
+        <option value="realizada">Realizada</option>
+        <option value="corrigir">A corrigir</option>
+      </select>
+      <input type="search" id="filtro-pesquisa" placeholder="Pesquisar por empresa..." />
+    </div>
+    <div id="lista-vistorias" class="cards-list"></div>
+  </section>
+
+  <!-- LISTA DE EMPRESAS -->
+  <section id="view-empresas" class="view">
+    <div class="view-header">
+      <h2>Empresas</h2>
+      <button class="btn btn-primary" id="btn-nova-empresa">+ Nova Empresa</button>
+    </div>
+    <input type="search" id="filtro-empresas" placeholder="Pesquisar empresa..." />
+    <div id="lista-empresas" class="cards-list"></div>
+  </section>
+
+  <!-- FORM EMPRESA -->
+  <section id="view-empresa-form" class="view">
+    <div class="view-header">
+      <button class="btn-back" data-route="#/empresas">&larr; Voltar</button>
+      <h2 id="empresa-form-titulo">Nova Empresa</h2>
+    </div>
+    <form id="form-empresa" class="stack-form">
+      <div class="foto-upload">
+        <img id="empresa-foto-preview" class="foto-preview" hidden />
+        <label class="btn btn-secondary">
+          Foto da Empresa
+          <input type="file" id="empresa-foto-input" accept="image/*" capture="environment" hidden />
+        </label>
+      </div>
+      <label>Nome da Empresa *
+        <input type="text" id="emp-nome" required />
+      </label>
+      <label>Tipo de Laboração
+        <input type="text" id="emp-tipoLaboracao" />
+      </label>
+      <div id="empresa-campos-identificacao"></div>
+      <div class="form-error" id="empresa-form-error"></div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Guardar</button>
+      </div>
+    </form>
+    <div id="empresa-historico"></div>
+  </section>
+
+  <!-- FICHA DE VISTORIA -->
+  <section id="view-vistoria-form" class="view">
+    <div class="view-header">
+      <button class="btn-back" data-route="#/dashboard">&larr; Voltar</button>
+      <h2 id="vistoria-form-titulo">Vistoria</h2>
+    </div>
+
+    <div class="vistoria-meta stack-form">
+      <label>Empresa *
+        <select id="vist-empresa" required></select>
+      </label>
+      <div class="grid-2">
+        <label>Estado
+          <select id="vist-estado">
+            <option value="pendente">Pendente</option>
+            <option value="agendada">Agendada</option>
+            <option value="realizada">Realizada</option>
+            <option value="corrigir">A corrigir</option>
+          </select>
+        </label>
+        <label>Vistoriador
+          <select id="vist-vistoriador"></select>
+        </label>
+        <label>Data Agendada
+          <input type="date" id="vist-data-agendada" />
+        </label>
+        <label>Data de Realização
+          <input type="date" id="vist-data-realizacao" />
+        </label>
+      </div>
+    </div>
+
+    <div class="accordion" id="ficha-accordion">
+      <!-- secções da ficha geradas dinamicamente por js/vistorias.js -->
+    </div>
+
+    <div class="form-error" id="vistoria-form-error"></div>
+    <div class="form-actions form-actions-sticky">
+      <button type="button" class="btn btn-secondary" id="btn-gerar-pdf">Gerar PDF</button>
+      <button type="button" class="btn btn-primary" id="btn-guardar-vistoria">Guardar</button>
+    </div>
+  </section>
+
+  <!-- UTILIZADORES (ADMIN) -->
+  <section id="view-utilizadores" class="view">
+    <div class="view-header">
+      <h2>Utilizadores</h2>
+    </div>
+    <div id="lista-utilizadores" class="cards-list"></div>
+  </section>
+
+</main>
+
+<div id="toast" class="toast" hidden></div>
+<div id="loading-overlay" class="loading-overlay" hidden><div class="spinner"></div></div>
+
+<!-- Firebase (compat SDK) -->
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-storage-compat.js"></script>
+<!-- jsPDF para geração do PDF da ficha -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script src="js/firebase-config.js"></script>
+<script src="js/ficha-schema.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/form-engine.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/pdf.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/empresas.js"></script>
+<script src="js/vistorias.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
