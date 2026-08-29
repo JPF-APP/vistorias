@@ -15,7 +15,7 @@ const FIREBASE_CONFIG = {
   projectId: "vistorias-unidades-industriais",
   storageBucket: "vistorias-unidades-industriais.firebasestorage.app",
   messagingSenderId: "57329993800",
-  appId: "G-JW7NNP8FV9",
+  appId: "1:57329993800:web:ff2c3d2f982b048a47f07d",
 };
 
 firebase.initializeApp(FIREBASE_CONFIG);
