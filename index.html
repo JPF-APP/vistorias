@@ -3,14 +3,15 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-<title>Vistorias | Bombeiros</title>
+<title>Vistorias | Bombeiros São João da Pesqueira</title>
+<link rel="icon" href="assets/logo.png" />
 <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
 
 <header class="topbar" id="topbar" hidden>
   <div class="topbar-brand">
-    <span class="brand-icon">🚒</span>
+    <img src="assets/logo.png" alt="" class="brand-logo" />
     <span class="brand-text">Vistorias</span>
   </div>
   <nav class="topnav" id="topnav">
@@ -30,9 +31,9 @@
   <section id="view-login" class="view">
     <div class="auth-card">
       <div class="auth-brand">
-        <span class="brand-icon-lg">🚒</span>
-        <h1>Vistorias</h1>
-        <p class="muted">Segurança Contra Incêndios em Edificios</p>
+        <img src="assets/logo.png" alt="Associação Humanitária de Bombeiros Voluntários de São João da Pesqueira" class="brand-logo-lg" />
+        <h1>Bombeiros São João da Pesqueira</h1>
+        <p class="muted">Vistorias · Segurança Contra Incêndios em Edificações</p>
       </div>
       <form id="form-login">
         <label>Email
@@ -52,7 +53,7 @@
   <section id="view-signup" class="view">
     <div class="auth-card">
       <div class="auth-brand">
-        <span class="brand-icon-lg">🚒</span>
+        <img src="assets/logo.png" alt="Associação Humanitária de Bombeiros Voluntários de São João da Pesqueira" class="brand-logo-lg" />
         <h1>Criar Conta</h1>
         <p class="muted">O acesso fica pendente de aprovação por um administrador</p>
       </div>
@@ -149,6 +150,8 @@
       <button class="btn-back" data-route="#/dashboard">&larr; Voltar</button>
       <h2 id="vistoria-form-titulo">Vistoria</h2>
     </div>
+
+    <div id="vistoria-empresa-context" class="empresa-context-card" hidden></div>
 
     <div class="vistoria-meta stack-form">
       <label>Empresa *

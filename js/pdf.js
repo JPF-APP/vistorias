@@ -27,6 +27,13 @@ async function imageUrlToDataUrl(url) {
   }
 }
 
+let _logoDataUrlCache; // evita voltar a descarregar o logo em cada PDF gerado na mesma sessão
+async function getLogoDataUrl() {
+  if (_logoDataUrlCache !== undefined) return _logoDataUrlCache;
+  _logoDataUrlCache = await imageUrlToDataUrl("assets/logo.png");
+  return _logoDataUrlCache;
+}
+
 function novoDoc() {
   const { jsPDF } = window.jspdf;
   return new jsPDF({ unit: "pt", format: "a4" });
@@ -135,25 +142,40 @@ async function gerarPdfVistoria(empresa, meta, ficha) {
       }
     }
 
-    // Cabeçalho
+    // Cabeçalho / letterhead, com o logo do corpo de bombeiros
+    const logoDataUrl = await getLogoDataUrl();
+    if (logoDataUrl) {
+      try { doc.addImage(logoDataUrl, "PNG", PDF_MARGIN, y, 48, 48); } catch (e) { /* ignora falha de imagem */ }
+    }
     doc.setFont(undefined, "bold");
-    doc.setFontSize(13);
+    doc.setFontSize(10);
     doc.setTextColor(...PDF_RED);
-    doc.text("FORMULÁRIO DE SEGURANÇA CONTRA INCÊNDIOS", pageW / 2, y, { align: "center" });
-    y += 16;
-    doc.text("E ACIDENTES DE PROJETO TÉCNICO", pageW / 2, y, { align: "center" });
-    y += 22;
+    doc.text("ASSOCIAÇÃO HUMANITÁRIA DE BOMBEIROS VOLUNTÁRIOS", pageW / 2, y + 12, { align: "center" });
+    doc.text("DE SÃO JOÃO DA PESQUEIRA", pageW / 2, y + 25, { align: "center" });
+    doc.setFontSize(12.5);
+    doc.text("FORMULÁRIO DE SEGURANÇA CONTRA INCÊNDIOS", pageW / 2, y + 44, { align: "center" });
+    doc.text("E ACIDENTES DE PROJETO TÉCNICO", pageW / 2, y + 58, { align: "center" });
     doc.setTextColor(20, 20, 20);
     doc.setFont(undefined, "normal");
-    doc.setFontSize(9);
-    doc.text(`Gerado em ${new Date().toLocaleDateString("pt-PT")}`, pageW / 2, y, { align: "center" });
-    y += 20;
+    doc.setFontSize(8.5);
+    doc.text(`Gerado em ${new Date().toLocaleDateString("pt-PT")}`, pageW / 2, y + 72, { align: "center" });
 
-    // Foto da empresa (se existir)
+    y += 82;
+    doc.setDrawColor(...PDF_RED);
+    doc.setLineWidth(1.3);
+    doc.line(PDF_MARGIN, y, pageW - PDF_MARGIN, y);
+    y += 18;
+
+    // Foto da empresa (se existir) — reserva o canto superior direito para não
+    // colidir com o texto (que ocupa a largura toda mais abaixo).
+    let fotoEmpresaBottom = 0;
     if (empresa.fotoUrl) {
       const dataUrl = await imageUrlToDataUrl(empresa.fotoUrl);
       if (dataUrl) {
-        try { doc.addImage(dataUrl, "JPEG", pageW - PDF_MARGIN - 90, PDF_MARGIN, 90, 90); } catch (e) { /* ignora falha de imagem */ }
+        try {
+          doc.addImage(dataUrl, "JPEG", pageW - PDF_MARGIN - 90, y, 90, 90);
+          fotoEmpresaBottom = y + 90;
+        } catch (e) { /* ignora falha de imagem */ }
       }
     }
 
@@ -162,6 +184,7 @@ async function gerarPdfVistoria(empresa, meta, ficha) {
     campoLinha("Nome da Empresa", empresa.nome);
     campoLinha("Tipo de Laboração", empresa.tipoLaboracao);
     y += 6;
+    if (fotoEmpresaBottom) y = Math.max(y, fotoEmpresaBottom + 6);
 
     titulo(FICHA_SCHEMA.identificacao.titulo);
     camposEmDuasColunas(FICHA_SCHEMA.identificacao.campos, empresa);

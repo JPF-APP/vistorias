@@ -68,6 +68,12 @@ function debounce(fn, ms) {
   };
 }
 
+// Remove um prefixo numérico do tipo "4. " do início de um título de secção
+// (usado nos cabeçalhos do acordeão, que já mostram o número num círculo à parte).
+function stripSectionNumber(titulo) {
+  return (titulo || "").replace(/^\d+\.\s*/, "");
+}
+
 const ESTADO_LABELS = {
   pendente: "Pendente",
   agendada: "Agendada",

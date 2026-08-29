@@ -73,6 +73,52 @@ async function abrirFormVistoria(vistoriaId, empresaIdPrefill) {
     AppAuth.vistoriadores.map(u => `<option value="${u.id}" ${vistoria && vistoria.vistoriadorId === u.id ? "selected" : ""}>${escapeHtml(u.nome)}</option>`).join("");
 
   renderFichaAccordion();
+  atualizarContextoEmpresa();
+}
+
+// Mostra um pequeno cartão com o nome/foto/estado da empresa selecionada, no
+// topo do formulário, para nunca se perder de vista qual a vistoria em edição.
+function atualizarContextoEmpresa() {
+  const cont = $("#vistoria-empresa-context");
+  const empresaId = $("#vist-empresa").value;
+  const empresa = Empresas.cache.find(e => e.id === empresaId);
+  if (!empresa) { cont.hidden = true; return; }
+
+  const estado = $("#vist-estado").value;
+  cont.innerHTML = `
+    ${empresa.fotoUrl
+      ? `<img class="empresa-context-foto" src="${empresa.fotoUrl}" alt="" />`
+      : `<div class="empresa-context-foto"></div>`}
+    <div class="empresa-context-info">
+      <p class="empresa-context-nome">${escapeHtml(empresa.nome)}</p>
+      <p class="empresa-context-sub">${escapeHtml(empresa.freguesia || empresa.morada || "")}</p>
+    </div>
+    <span class="badge badge-${estado}">${ESTADO_LABELS[estado] || estado}</span>
+  `;
+  cont.hidden = false;
+}
+
+// Conta quantos itens de checklist já têm um estado escolhido, para mostrar o
+// progresso no cabeçalho da secção (ex: "14/24 preenchidos").
+function contarPreenchidos(itens, valores) {
+  valores = valores || {};
+  const total = itens.length;
+  const feitos = itens.filter(i => valores[i.key] && valores[i.key].estado).length;
+  return { feitos, total };
+}
+
+function accHeader(titulo, progresso) {
+  const progressoHtml = progresso
+    ? `<span class="acc-progress">${progresso.feitos}/${progresso.total}</span>`
+    : "";
+  return `
+    <div class="acc-header">
+      <span class="acc-title">${escapeHtml(stripSectionNumber(titulo))}</span>
+      <span style="display:flex; align-items:center;">
+        ${progressoHtml}
+        <span class="acc-caret">›</span>
+      </span>
+    </div>`;
 }
 
 function renderFichaAccordion() {
@@ -81,13 +127,13 @@ function renderFichaAccordion() {
 
   const secaoSeguranca = `
     <div class="acc-section" data-section-key="seguranca">
-      <div class="acc-header"><span>${FICHA_SCHEMA.seguranca.titulo}</span><span class="acc-caret">›</span></div>
+      ${accHeader(FICHA_SCHEMA.seguranca.titulo)}
       <div class="acc-body">${renderCamposGrid(FICHA_SCHEMA.seguranca.campos, f.seguranca, "seg")}</div>
     </div>`;
 
   const secaoAgua = `
     <div class="acc-section" data-section-key="reservaAgua">
-      <div class="acc-header"><span>${FICHA_SCHEMA.reservaAgua.titulo}</span><span class="acc-caret">›</span></div>
+      ${accHeader(FICHA_SCHEMA.reservaAgua.titulo)}
       <div class="acc-body">
         ${FICHA_SCHEMA.reservaAgua.grupos.map(g => `
           <div class="subgroup">
@@ -100,7 +146,7 @@ function renderFichaAccordion() {
 
   const secaoMedidas = `
     <div class="acc-section" data-section-key="medidas">
-      <div class="acc-header"><span>${FICHA_SCHEMA.medidas.titulo}</span><span class="acc-caret">›</span></div>
+      ${accHeader(FICHA_SCHEMA.medidas.titulo, contarPreenchidos(FICHA_SCHEMA.medidas.itens, f.medidas))}
       <div class="acc-body">
         ${FICHA_SCHEMA.medidas.itens.map(item => renderItemChecklist(item, f.medidas[item.key], "med")).join("")}
       </div>
@@ -108,7 +154,7 @@ function renderFichaAccordion() {
 
   const secaoRiscos = `
     <div class="acc-section" data-section-key="riscosEspeciais">
-      <div class="acc-header"><span>${FICHA_SCHEMA.riscosEspeciais.titulo}</span><span class="acc-caret">›</span></div>
+      ${accHeader(FICHA_SCHEMA.riscosEspeciais.titulo, contarPreenchidos(FICHA_SCHEMA.riscosEspeciais.itens, f.riscosEspeciais))}
       <div class="acc-body">
         ${FICHA_SCHEMA.riscosEspeciais.armazenamentos.map(a => `
           <div class="subgroup">
@@ -125,7 +171,7 @@ function renderFichaAccordion() {
 
   const secaoNota = `
     <div class="acc-section" data-section-key="nota">
-      <div class="acc-header"><span>6. Nota</span><span class="acc-caret">›</span></div>
+      ${accHeader("Nota")}
       <div class="acc-body">
         <label>Observações<textarea id="nota-textarea" data-key="nota">${escapeHtml(f.nota || "")}</textarea></label>
       </div>
@@ -368,4 +414,7 @@ function initVistoriasHandlers() {
   });
   $("#filtro-estado").addEventListener("change", renderListaVistorias);
   $("#filtro-pesquisa").addEventListener("input", debounce(renderListaVistorias, 200));
+
+  $("#vist-empresa").addEventListener("change", atualizarContextoEmpresa);
+  $("#vist-estado").addEventListener("change", atualizarContextoEmpresa);
 }
